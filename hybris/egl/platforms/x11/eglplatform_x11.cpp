@@ -48,7 +48,7 @@ extern "C" {
 #include <wayland-egl.h>
 }
 
-#include <hybris/gralloc/gralloc.h>
+#include <hardware/gralloc.h>
 #include "x11_window.h"
 #include "logging.h"
 
@@ -123,6 +123,12 @@ extern "C" _EGLDisplay *x11ws_GetDisplay(EGLNativeDisplayType display)
 	}
 
 	return &xdpy->base;
+}
+
+extern "C" void x11ws_releaseDisplay(_EGLDisplay *dpy)
+{
+	X11Display *xdpy = (X11Display *)dpy;
+	delete xdpy;
 }
 
 extern "C" void x11ws_Terminate(_EGLDisplay *dpy)
@@ -249,9 +255,10 @@ extern "C" void x11ws_setSwapInterval(EGLDisplay dpy, EGLNativeWindowType win, E
 extern "C" EGLBoolean x11ws_eglGetConfigAttrib(struct _EGLDisplay *display, EGLConfig config, EGLint attribute, EGLint *value)
 {
 	TRACE("attribute:%i", attribute);
-	if (attribute == EGL_NATIVE_VISUAL_ID)
+	X11Display *xdpy = (X11Display *)display;
+
+	if (attribute == EGL_NATIVE_VISUAL_ID && xdpy->xl_display != NULL)
 	{
-		X11Display *xdpy = (X11Display *)display;
 		XVisualInfo visinfo_template;
 		XVisualInfo *visinfo = NULL;
 		int visinfos_count = 0;
@@ -285,5 +292,7 @@ struct ws_module ws_module_info = {
 	x11ws_prepareSwap,
 	x11ws_finishSwap,
 	x11ws_setSwapInterval,
+	x11ws_releaseDisplay,
+	NULL,
 	x11ws_eglGetConfigAttrib
 };

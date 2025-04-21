@@ -162,6 +162,10 @@ extern "C" void waylandws_eglInitialized(_EGLDisplay *dpy)
 {
 	WaylandDisplay *wdpy = (WaylandDisplay *)dpy;
 
+	if (wdpy->wl_dpy == NULL) {
+		return;
+	}
+
 	if (wdpy->init_count == 0) {
 		wdpy->queue = wl_display_create_queue(wdpy->wl_dpy);
 		wdpy->registry = wl_display_get_registry(wdpy->wl_dpy);

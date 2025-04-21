@@ -80,6 +80,8 @@ static void (*_glEGLImageTargetTexture2DOES) (GLenum target, GLeglImageOES image
 
 static __eglMustCastToProperFunctionPointerType (*_eglGetProcAddress)(const char *procname) = NULL;
 
+static EGLBoolean (*_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value) = NULL;
+
 static void _init_androidegl()
 {
 	egl_handle = (void *) android_dlopen(getenv("LIBEGL") ? getenv("LIBEGL") : "libEGL.so", RTLD_LAZY);
@@ -232,6 +234,10 @@ EGLDisplay __eglHybrisGetPlatformDisplayCommon(EGLenum platform,
 			// "null" ws passthrough everything, which essentially means
 			// the Android platform. Not to be confused with NULL (0) value.
 			hybris_ws = "null";
+			break;
+
+		case EGL_PLATFORM_X11_KHR:
+			hybris_ws = "x11";
 			break;
 
 #ifdef WANT_WAYLAND
@@ -539,6 +545,7 @@ static struct FuncNamePair _eglHybrisOverrideFunctions[] = {
 	OVERRIDE_SAMENAME(eglCreateContext),
 	OVERRIDE_SAMENAME(eglSwapBuffers),
 	OVERRIDE_SAMENAME(eglGetProcAddress),
+	OVERRIDE_SAMENAME(eglGetConfigAttrib),
 	/*
 	 * EGL_EXT_platform_base, in case Android EGL or glvnd advertise its
 	 * support.
@@ -568,7 +575,6 @@ static struct FuncNamePair _eglHybrisOverrideFunctions[] = {
 	OVERRIDE_TO(eglGetPlatformDisplayEXT, eglGetPlatformDisplay),
 	OVERRIDE_MY(eglCreatePlatformWindowSurfaceEXT),
 	OVERRIDE_TO(eglCreatePlatformPixmapSurfaceEXT, eglCreatePixmapSurface),
-	OVERRIDE_SAMENAME(eglGetConfigAttrib),
 };
 static EGLBoolean _eglHybrisOverrideFunctions_sorted = EGL_FALSE;
 
@@ -646,16 +652,18 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname)
 	}
 
 	return ret;
+}
+
 EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value)
 {
 	HYBRIS_DLSYSM(egl, &_eglGetConfigAttrib, "eglGetConfigAttrib");
 	struct _EGLDisplay *display = hybris_egl_display_get_mapping(dpy);
 
-    EGLBoolean ret = ws_eglGetConfigAttrib(display, config, attribute, value);
-    if (ret == EGL_FALSE) {
-        return (*_eglGetConfigAttrib)(dpy, config, attribute, value);
-    }
-    return ret;
+	EGLBoolean ret = ws_eglGetConfigAttrib(display, config, attribute, value);
+	if (ret == EGL_FALSE) {
+		return (*_eglGetConfigAttrib)(dpy, config, attribute, value);
+	}
+	return ret;
 }
 
 // vim:ts=4:sw=4:noexpandtab
